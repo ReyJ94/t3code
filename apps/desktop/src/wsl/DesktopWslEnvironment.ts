@@ -113,6 +113,10 @@ export class DesktopWslEnvironment extends Context.Service<
 const buildDistroArgs = (distro: string | null): ReadonlyArray<string> =>
   distro ? ["-d", distro] : [];
 
+// Load the user's login profile, then execute the scripted stdin in a
+// non-login child so the profile's logout hook cannot rewrite its exit code.
+export const WSL_SCRIPT_SHELL_ARGS = ["--", "bash", "-l", "-c", "exec bash -s"] as const;
+
 const concatChunks = (arrays: ReadonlyArray<Uint8Array>): Uint8Array => {
   let totalLength = 0;
   for (const arr of arrays) totalLength += arr.byteLength;
@@ -174,11 +178,13 @@ const runWslScript = (
   timeout: Duration.Duration,
 ): Effect.Effect<ShellResult, never, ChildProcessSpawner.ChildProcessSpawner> => {
   const spawner = ChildProcessSpawner.ChildProcessSpawner;
-  // -l picks up profile-managed shell state. -s makes bash read the script
-  // from stdin so wsl.exe never has to re-escape the script as an argument.
+  // Load profile-managed shell state in a login shell, then replace it with a
+  // non-login child that reads stdin. This preserves exported profile state
+  // without running ~/.bash_logout, whose status can rewrite a successful
+  // scripted launch when bash exits.
   const command = ChildProcess.make(
     "wsl.exe",
-    [...buildDistroArgs(distro), "--", "bash", "-l", "-s"],
+    [...buildDistroArgs(distro), ...WSL_SCRIPT_SHELL_ARGS],
     {
       stdin: Stream.encodeText(Stream.make(bashScript)),
       stdout: "pipe",

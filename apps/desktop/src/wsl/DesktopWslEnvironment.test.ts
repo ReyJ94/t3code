@@ -22,6 +22,7 @@ import {
   parseResolvedPath,
   parseToolchainReport,
   probeWslDistros,
+  WSL_SCRIPT_SHELL_ARGS,
 } from "./DesktopWslEnvironment.ts";
 
 const encoder = new TextEncoder();
@@ -109,6 +110,12 @@ describe("formatWslShellTransportFailureReason", () => {
     expect(formatWslShellTransportFailureReason("spawn")).toContain("could not start wsl.exe");
     expect(formatWslShellTransportFailureReason("process")).toContain("lost communication");
     expect(formatWslShellTransportFailureReason(null)).toBeNull();
+  });
+});
+
+describe("WSL scripted shell transport", () => {
+  it("loads login state then executes stdin in a non-login child", () => {
+    expect(WSL_SCRIPT_SHELL_ARGS).toEqual(["--", "bash", "-l", "-c", "exec bash -s"]);
   });
 });
 
