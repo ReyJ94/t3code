@@ -420,6 +420,10 @@ export const buildPackagedRuntimeStageScript = (
   const cacheHitScript = [
     'if [ "$(cat "$manifest_path" 2>/dev/null || true)" = "$runtime_id" ] && [ -f "$entry_path" ]; then',
     `  printf 'runtimeRoot:%s\\n' "$current_dir"`,
+    // bash -l runs the user's logout hook after an explicit exit. Disable
+    // errexit on this already-successful cache-hit path so that hook status
+    // cannot turn the reported success into a false non-zero wsl.exe exit.
+    "  set +e",
     "  exit 0",
     "fi",
   ];

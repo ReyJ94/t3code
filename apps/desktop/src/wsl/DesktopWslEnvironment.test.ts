@@ -144,6 +144,19 @@ describe("buildPackagedRuntimeStageScript", () => {
     expect(script.slice(cacheHit, sourceConversion)).toContain("exit 0");
   });
 
+  it("disables errexit before the login-shell cache-hit exit", () => {
+    const script = buildPackagedRuntimeStageScript(
+      "C:\\Program Files\\T3 Code\\resources\\app.asar.unpacked",
+      "1.2.3-x64",
+    );
+    const cacheHit = script.indexOf('if [ "$(cat "$manifest_path"');
+    const disableErrexit = script.indexOf("set +e", cacheHit);
+    const explicitExit = script.indexOf("exit 0", cacheHit);
+
+    expect(disableErrexit).toBeGreaterThan(cacheHit);
+    expect(disableErrexit).toBeLessThan(explicitExit);
+  });
+
   it("falls back from an XDG cache on a Windows-mounted filesystem", () => {
     const script = buildPackagedRuntimeStageScript(
       "C:\\Program Files\\T3 Code\\resources\\app.asar.unpacked",
