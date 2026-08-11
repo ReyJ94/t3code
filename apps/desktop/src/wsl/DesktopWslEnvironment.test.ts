@@ -22,6 +22,7 @@ import {
   parseResolvedPath,
   parseToolchainReport,
   probeWslDistros,
+  WSL_SCRIPT_SHELL_ARGS,
 } from "./DesktopWslEnvironment.ts";
 
 const encoder = new TextEncoder();
@@ -112,6 +113,12 @@ describe("formatWslShellTransportFailureReason", () => {
   });
 });
 
+describe("WSL scripted shell transport", () => {
+  it("loads login state then executes stdin in a non-login child", () => {
+    expect(WSL_SCRIPT_SHELL_ARGS).toEqual(["--", "bash", "-l", "-c", "exec bash -s"]);
+  });
+});
+
 describe("buildWslNodeEnvPreamble", () => {
   it("passes the required Node engine range into the shared resolver", () => {
     const preamble = buildWslNodeEnvPreamble("^22.16 || ^23.11 || >=24.10");
@@ -142,19 +149,6 @@ describe("buildPackagedRuntimeStageScript", () => {
       'runtimeRoot:%s\\n\' "$current_dir"',
     );
     expect(script.slice(cacheHit, sourceConversion)).toContain("exit 0");
-  });
-
-  it("disables errexit before the login-shell cache-hit exit", () => {
-    const script = buildPackagedRuntimeStageScript(
-      "C:\\Program Files\\T3 Code\\resources\\app.asar.unpacked",
-      "1.2.3-x64",
-    );
-    const cacheHit = script.indexOf('if [ "$(cat "$manifest_path"');
-    const disableErrexit = script.indexOf("set +e", cacheHit);
-    const explicitExit = script.indexOf("exit 0", cacheHit);
-
-    expect(disableErrexit).toBeGreaterThan(cacheHit);
-    expect(disableErrexit).toBeLessThan(explicitExit);
   });
 
   it("falls back from an XDG cache on a Windows-mounted filesystem", () => {
